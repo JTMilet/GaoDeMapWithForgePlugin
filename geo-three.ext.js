@@ -2,18 +2,25 @@ three = THREE;
 
 class GeoThreeExtension extends Autodesk.Viewing.Extension {
   load() {
-    var DEV_BING_API_KEY =
-      "AuViYD_FXGfc3dxc0pNa8ZEJxyZyPq1lwOLPCOydV3f0tlEVH-HKMgxZ9ilcRj-T";
-    var provider = new Geo.BingMapsProvider(
-      DEV_BING_API_KEY,
-      Geo.BingMapsProvider.ROAD
+    // var DEV_BING_API_KEY =
+    //   "AuViYD_FXGfc3dxc0pNa8ZEJxyZyPq1lwOLPCOydV3f0tlEVH-HKMgxZ9ilcRj-T";
+    // var provider = new Geo.BingMapsProvider(
+    //   DEV_BING_API_KEY,
+    //   Geo.BingMapsProvider.ROAD // 'r'
+    // );
+    var provider = new Geo.AMapMapsProvider();
+    console.log(
+      "🚀 ~ file: geo-three.ext.js:11 ~ GeoThreeExtension ~ load ~ provider:",
+      provider
     );
 
     var map = new Geo.MapView(Geo.MapView.PLANAR, provider);
-    map.position.set(14900, -27300, -45);
+    map.getMetaData();
+    // map.position.set(14900, -27300, -45); // 地图偏移量
+    // 下面的都不用看
     viewer.overlays.addScene("map");
     viewer.overlays.addMesh(map, "map");
-    map.updateMatrixWorld(false);
+    // map.updateMatrixWorld(false);
 
     viewer.autocam.shotParams.destinationPercent = 3;
     viewer.autocam.shotParams.duration = 3;
@@ -66,14 +73,21 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
     }
     getMetaData() {}
   }
-
-  class OpenStreetMapsProvider extends MapProvider {
-    constructor(address = "https://a.tile.openstreetmap.org/") {
+  // 高德地图的Provider
+  class AMapMapsProvider extends MapProvider {
+    constructor() {
       super();
-      this.address = address;
-      this.format = "png";
     }
-    fetchTile(zoom, x, y) {
+    getMetaData() {
+      const map = new AMap.Map("forgeViewer", {
+        zoom: 11, //级别
+        center: [116.397428, 39.90923], //中心点坐标
+        terrain: true,
+        pitch: 45,
+        viewMode: "3D", //使用3D视图
+      });
+    }
+    fetchTile(z, x, y) {
       return new Promise((resolve, reject) => {
         const image = document.createElement("img");
         image.onload = function () {
@@ -84,10 +98,37 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
         };
         image.crossOrigin = "Anonymous";
         image.src =
-          this.address + "/" + zoom + "/" + x + "/" + y + "." + this.format;
+          "https://webst01.is.autonavi.com/appmaptile?style=6&z=" +
+          zoom +
+          "&x=" +
+          x +
+          "&y=" +
+          y;
       });
     }
   }
+
+  // class OpenStreetMapsProvider extends MapProvider {
+  //   constructor(address = "https://a.tile.openstreetmap.org/") {
+  //     super();
+  //     this.address = address;
+  //     this.format = "png";
+  //   }
+  //   fetchTile(zoom, x, y) {
+  //     return new Promise((resolve, reject) => {
+  //       const image = document.createElement("img");
+  //       image.onload = function () {
+  //         resolve(image);
+  //       };
+  //       image.onerror = function () {
+  //         reject();
+  //       };
+  //       image.crossOrigin = "Anonymous";
+  //       image.src =
+  //         this.address + "/" + zoom + "/" + x + "/" + y + "." + this.format;
+  //     });
+  //   }
+  // }
 
   class MapNodeGeometry extends three.BufferGeometry {
     constructor(width, height, widthSegments, heightSegments) {
@@ -438,15 +479,16 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
 
   class MapView extends three.Mesh {
     constructor(
-      root = MapView.PLANAR,
-      provider = new OpenStreetMapsProvider(),
+      root = MapView.PLANAR, // 200
+      // provider = new OpenStreetMapsProvider(),
+      provider = new AMapMapsProvider(),
       heightProvider = null
     ) {
       super(undefined, undefined);
-      this.lod = null;
-      this.provider = null;
-      this.heightProvider = null;
-      this.root = null;
+      // this.lod = null;
+      // this.provider = null;
+      // this.heightProvider = null;
+      // this.root = null;
       // doesn't work in R71
       // this.onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
       //     this.lod.updateLOD(this, camera, renderer, scene);
@@ -454,35 +496,43 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
       this.lod = new LODRaycast();
       this.provider = provider;
       this.heightProvider = heightProvider;
-      this.setRoot(root);
+      // this.setRoot(root);
     }
-    setRoot(root) {
-      root = new MapPlaneNode(null, this);
-      if (this.root !== null) {
-        this.remove(this.root);
-        this.root = null;
-      }
-      this.root = root;
-      if (this.root !== null) {
-        this.rotateX(Math.PI / 2);
-        this.geometry = this.root.constructor.BASE_GEOMETRY;
-        this.scale.copy(this.root.constructor.BASE_SCALE);
-        this.root.mapView = this;
-        this.add(this.root);
-      }
-    }
-    setProvider(provider) {
-      if (provider !== this.provider) {
-        this.provider = provider;
-        this.clear();
-      }
-    }
-    setHeightProvider(heightProvider) {
-      if (heightProvider !== this.heightProvider) {
-        this.heightProvider = heightProvider;
-        this.clear();
-      }
-    }
+    // setRoot(root) {
+    //   console.log(
+    //     "🚀 ~ file: geo-three.ext.js:500 ~ MapView ~ setRoot ~ root:",
+    //     root
+    //   );
+    //   root = new MapPlaneNode(null, this);
+    //   console.log(
+    //     "🚀 ~ file: geo-three.ext.js:502 ~ MapView ~ setRoot ~ root:",
+    //     root
+    //   );
+    //   if (this.root !== null) {
+    //     this.remove(this.root);
+    //     this.root = null;
+    //   }
+    //   this.root = root;
+    //   if (this.root !== null) {
+    //     this.rotateX(Math.PI / 2);
+    //     this.geometry = this.root.constructor.BASE_GEOMETRY;
+    //     this.scale.copy(this.root.constructor.BASE_SCALE);
+    //     this.root.mapView = this;
+    //     this.add(this.root);
+    //   }
+    // }
+    // setProvider(provider) {
+    //   if (provider !== this.provider) {
+    //     this.provider = provider;
+    //     this.clear();
+    //   }
+    // }
+    // setHeightProvider(heightProvider) {
+    //   if (heightProvider !== this.heightProvider) {
+    //     this.heightProvider = heightProvider;
+    //     this.clear();
+    //   }
+    // }
     clear() {
       this.traverse(function (children) {
         if (children.childrenCache) {
@@ -506,57 +556,57 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
   MapView.HEIGHT = 202;
   MapView.HEIGHT_SHADER = 203;
 
-  class XHRUtils {
-    static get(url, onLoad, onError) {
-      const xhr = new XMLHttpRequest();
-      xhr.overrideMimeType("text/plain");
-      xhr.open("GET", url, true);
-      if (onLoad !== undefined) {
-        xhr.onload = function () {
-          onLoad(xhr.response);
-        };
-      }
-      if (onError !== undefined) {
-        xhr.onerror = onError;
-      }
-      xhr.send(null);
-      return xhr;
-    }
-    static request(url, type, header, body, onLoad, onError, onProgress) {
-      function parseResponse(response) {
-        try {
-          return JSON.parse(response);
-        } catch (e) {
-          return response;
-        }
-      }
-      const xhr = new XMLHttpRequest();
-      xhr.overrideMimeType("text/plain");
-      xhr.open(type, url, true);
-      if (header !== null && header !== undefined) {
-        for (const i in header) {
-          xhr.setRequestHeader(i, header[i]);
-        }
-      }
-      if (onLoad !== undefined) {
-        xhr.onload = function (event) {
-          onLoad(parseResponse(xhr.response), xhr);
-        };
-      }
-      if (onError !== undefined) {
-        xhr.onerror = onError;
-      }
-      if (onProgress !== undefined) {
-        xhr.onprogress = onProgress;
-      }
-      if (body !== undefined) {
-        xhr.send(body);
-      } else {
-        xhr.send(null);
-      }
-      return xhr;
-    }
-  }
+  // class XHRUtils {
+  //   static get(url, onLoad, onError) {
+  //     const xhr = new XMLHttpRequest();
+  //     xhr.overrideMimeType("text/plain");
+  //     xhr.open("GET", url, true);
+  //     if (onLoad !== undefined) {
+  //       xhr.onload = function () {
+  //         onLoad(xhr.response);
+  //       };
+  //     }
+  //     if (onError !== undefined) {
+  //       xhr.onerror = onError;
+  //     }
+  //     xhr.send(null);
+  //     return xhr;
+  //   }
+  //   static request(url, type, header, body, onLoad, onError, onProgress) {
+  //     function parseResponse(response) {
+  //       try {
+  //         return JSON.parse(response);
+  //       } catch (e) {
+  //         return response;
+  //       }
+  //     }
+  //     const xhr = new XMLHttpRequest();
+  //     xhr.overrideMimeType("text/plain");
+  //     xhr.open(type, url, true);
+  //     if (header !== null && header !== undefined) {
+  //       for (const i in header) {
+  //         xhr.setRequestHeader(i, header[i]);
+  //       }
+  //     }
+  //     if (onLoad !== undefined) {
+  //       xhr.onload = function (event) {
+  //         onLoad(parseResponse(xhr.response), xhr);
+  //       };
+  //     }
+  //     if (onError !== undefined) {
+  //       xhr.onerror = onError;
+  //     }
+  //     if (onProgress !== undefined) {
+  //       xhr.onprogress = onProgress;
+  //     }
+  //     if (body !== undefined) {
+  //       xhr.send(body);
+  //     } else {
+  //       xhr.send(null);
+  //     }
+  //     return xhr;
+  //   }
+  // }
 
   class BingMapsProvider extends MapProvider {
     constructor(apiKey = "", type = BingMapsProvider.AERIAL) {
@@ -707,8 +757,9 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
   exports.MapPlaneNode = MapPlaneNode;
   exports.MapProvider = MapProvider;
   exports.MapView = MapView;
-  exports.OpenStreetMapsProvider = OpenStreetMapsProvider;
+  // exports.OpenStreetMapsProvider = OpenStreetMapsProvider;
   exports.UnitsUtils = UnitsUtils;
+  exports.AMapMapsProvider = AMapMapsProvider;
 
   Object.defineProperty(exports, "__esModule", { value: true });
 });
