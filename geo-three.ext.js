@@ -9,14 +9,13 @@ class GeoThreeExtension extends Autodesk.Viewing.Extension {
     //   Geo.BingMapsProvider.ROAD // 'r'
     // );
     var provider = new Geo.AMapMapsProvider();
-    console.log(
-      "🚀 ~ file: geo-three.ext.js:11 ~ GeoThreeExtension ~ load ~ provider:",
-      provider
-    );
-
     var map = new Geo.MapView(Geo.MapView.PLANAR, provider);
-    map.getMetaData();
-    // map.position.set(14900, -27300, -45); // 地图偏移量
+    // map.getMetaData();
+    map.position.set(0, 0, -45); // 地图偏移量
+    console.log(
+      "🚀 ~ file: geo-three.ext.js:15 ~ GeoThreeExtension ~ load ~ map:",
+      map
+    );
     // 下面的都不用看
     viewer.overlays.addScene("map");
     viewer.overlays.addMesh(map, "map");
@@ -78,15 +77,15 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
     constructor() {
       super();
     }
-    getMetaData() {
-      const map = new AMap.Map("forgeViewer", {
-        zoom: 11, //级别
-        center: [116.397428, 39.90923], //中心点坐标
-        terrain: true,
-        pitch: 45,
-        viewMode: "3D", //使用3D视图
-      });
-    }
+    // getMetaData() {
+    //   const map = new AMap.Map("forgeViewer", {
+    //     zoom: 10, //级别
+    //     center: [116.397428, 39.90923], //中心点坐标
+    //     // terrain: true,
+    //     // pitch: 45,
+    //     viewMode: "2D", //使用3D视图
+    //   });
+    // }
     fetchTile(z, x, y) {
       return new Promise((resolve, reject) => {
         const image = document.createElement("img");
@@ -98,8 +97,8 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
         };
         image.crossOrigin = "Anonymous";
         image.src =
-          "https://webst01.is.autonavi.com/appmaptile?style=6&z=" +
-          zoom +
+          "https://webst01.is.autonavi.com/appmaptile?style=7&z=" +
+          z +
           "&x=" +
           x +
           "&y=" +
@@ -238,9 +237,11 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
       this.children = [];
     }
     loadTexture() {
+      console.log(this.mapView.provider);
       this.mapView.provider
         .fetchTile(this.level, this.x, this.y)
         .then((image) => {
+          console.log(image);
           const texture = new three.Texture(image);
           texture.generateMipmaps = false;
           texture.format = three.RGBFormat;
@@ -496,43 +497,35 @@ Autodesk.Viewing.theExtensionManager.registerExtension(
       this.lod = new LODRaycast();
       this.provider = provider;
       this.heightProvider = heightProvider;
-      // this.setRoot(root);
+      this.setRoot(root);
     }
-    // setRoot(root) {
-    //   console.log(
-    //     "🚀 ~ file: geo-three.ext.js:500 ~ MapView ~ setRoot ~ root:",
-    //     root
-    //   );
-    //   root = new MapPlaneNode(null, this);
-    //   console.log(
-    //     "🚀 ~ file: geo-three.ext.js:502 ~ MapView ~ setRoot ~ root:",
-    //     root
-    //   );
-    //   if (this.root !== null) {
-    //     this.remove(this.root);
-    //     this.root = null;
-    //   }
-    //   this.root = root;
-    //   if (this.root !== null) {
-    //     this.rotateX(Math.PI / 2);
-    //     this.geometry = this.root.constructor.BASE_GEOMETRY;
-    //     this.scale.copy(this.root.constructor.BASE_SCALE);
-    //     this.root.mapView = this;
-    //     this.add(this.root);
-    //   }
-    // }
-    // setProvider(provider) {
-    //   if (provider !== this.provider) {
-    //     this.provider = provider;
-    //     this.clear();
-    //   }
-    // }
-    // setHeightProvider(heightProvider) {
-    //   if (heightProvider !== this.heightProvider) {
-    //     this.heightProvider = heightProvider;
-    //     this.clear();
-    //   }
-    // }
+    setRoot(root) {
+      root = new MapPlaneNode(null, this);
+      if (this.root !== null) {
+        this.remove(this.root);
+        this.root = null;
+      }
+      this.root = root;
+      if (this.root !== null) {
+        this.rotateX(Math.PI / 2);
+        this.geometry = this.root.constructor.BASE_GEOMETRY;
+        this.scale.copy(this.root.constructor.BASE_SCALE);
+        this.root.mapView = this;
+        this.add(this.root);
+      }
+    }
+    setProvider(provider) {
+      if (provider !== this.provider) {
+        this.provider = provider;
+        this.clear();
+      }
+    }
+    setHeightProvider(heightProvider) {
+      if (heightProvider !== this.heightProvider) {
+        this.heightProvider = heightProvider;
+        this.clear();
+      }
+    }
     clear() {
       this.traverse(function (children) {
         if (children.childrenCache) {
